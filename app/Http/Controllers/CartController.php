@@ -29,6 +29,7 @@ class CartController extends Controller
 
         $token = (request()->query('token') ? request()->query('token') : 'null');
         $this->cart = app($instance)->session($token);
+
     }
 
     public function index(Request $request)
