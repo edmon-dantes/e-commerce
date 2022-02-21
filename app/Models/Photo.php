@@ -29,7 +29,7 @@ class Photo extends Model
         $this->attributes['properties'] = is_array($value) ? json_encode($value) : null;
     }
 
-    public function photoable()
+    public function pictureable()
     {
         return $this->morphTo();
     }

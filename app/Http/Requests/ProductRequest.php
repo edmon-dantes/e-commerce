@@ -7,19 +7,19 @@ use Illuminate\Validation\Rule;
 
 class ProductRequest extends BaseFormRequest
 {
-    protected function prepareForValidation(): void
-    {
-        if (!$this->has('data.section_id') && $this->has('data.category_id')) {
-            $category = Category::find((int)$this->input('data.category_id'));
+    // protected function prepareForValidation(): void
+    // {
+    //     if (!$this->has('data.section_id') && $this->has('data.category_id')) {
+    //         $category = Category::find((int)$this->input('data.category_id'));
 
-            $originalInput = $this->input('data');
-            $defaultRequest = ['section_id' => $category->section_id];
+    //         $originalInput = $this->input('data');
+    //         $defaultRequest = ['section_id' => $category->section_id];
 
-            $mergeRequest = array_merge($defaultRequest, $originalInput);
+    //         $mergeRequest = array_merge($defaultRequest, $originalInput);
 
-            $this->merge(['data' =>  $mergeRequest]);
-        }
-    }
+    //         $this->merge(['data' =>  $mergeRequest]);
+    //     }
+    // }
 
     public function view()
     {
@@ -30,13 +30,12 @@ class ProductRequest extends BaseFormRequest
     {
         return [
             'data.name' => ['required', 'string', 'max:255'],
-            'data.code' => ['required', 'string', 'max:255', 'unique:products,code'],
-            'data.color' => ['required', 'string', 'max:255'],
-            'data.price' => ['required', 'numeric'],
-            'data.discount' => ['required'],
-            'data.weight' => ['required'],
+            'data.sku' => ['required', 'string', 'max:255', 'unique:products,sku'],
             'data.description' => ['nullable', 'string', 'max:255'],
-            'data.wash_care' => ['required'],
+            'data.details' => ['nullable', 'string', 'max:255'],
+            'data.price' => ['required', 'numeric'],
+            'data.stock' => ['required', 'numeric'],
+            'data.discount' => ['required'],
             'data.fabric' => ['required'],
             'data.pattern' => ['required'],
             'data.sleeve' => ['required'],
@@ -46,36 +45,34 @@ class ProductRequest extends BaseFormRequest
             'data.meta_description' => ['required', 'string', 'max:255'],
             'data.meta_keywords' => ['required', 'string', 'max:255'],
             'data.is_featured' => ['integer', 'min:0', 'digits_between: 0,1'],
-            'data.section_id' => ['required', 'integer'],
-            'data.category_id' => ['required', 'integer'],
-            'data.brand_id' => ['required', 'integer'],
+            'data.category_id' => ['required', 'integer', 'exists:App\Models\Category,id'],
+            'data.brand_id' => ['required', 'integer', 'exists:App\Models\Brand,id'],
             'data.status' => ['integer', 'min:0', 'digits_between: 0,1'],
 
-            'data.photos' => ['required', 'array', 'min:1'],
-            'data.photos.*.name' => ['string', 'max:255'],
-            'data.photos.*.file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,gif', 'max:2048'],
+            'data.pictures' => ['array'],
+            'data.pictures.*.name' => ['string', 'max:255'],
+            'data.pictures.*.file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,gif', 'max:2048'],
 
-            'data.attributes' => ['required', 'array', 'min:1'],
-            'data.attributes.*.size' => ['required', 'string', 'max:255', 'distinct'],
-            'data.attributes.*.price' => ['required', 'numeric'],
-            'data.attributes.*.stock' => ['required', 'numeric'],
-            'data.attributes.*.sku' => ['required', 'string', 'max:255', 'distinct', 'unique:products_attributes,sku'],
-            'data.attributes.*.status' => ['integer', 'min:0', 'digits_between: 0,1'],
+            // 'data.attributes' => ['required', 'array', 'min:1'],
+            // 'data.attributes.*.size' => ['required', 'string', 'max:255', 'distinct'],
+            // 'data.attributes.*.sku' => ['required', 'string', 'max:255', 'distinct', 'unique:products_attributes,sku'],
+            // 'data.attributes.*.price' => ['required', 'numeric'],
+            // 'data.attributes.*.stock' => ['required', 'numeric'],
+            // 'data.attributes.*.status' => ['integer', 'min:0', 'digits_between: 0,1'],
         ];
     }
 
     public function update()
     {
         return [
-            'data.id' => ['required', 'integer', 'exists:products,id'],
+            'data.id' => ['required', 'integer', 'exists:App\Models\Product,id'],
             'data.name' => ['required', 'string', 'max:255'],
-            'data.code' => ['required', 'string', 'max:255', Rule::unique('products', 'code')->ignore($this->product)],
-            'data.color' => ['required', 'string', 'max:255'],
-            'data.price' => ['required', 'numeric'],
-            'data.discount' => ['required'],
-            'data.weight' => ['required'],
+            'data.sku' => ['required', 'string', 'max:255', Rule::unique('products', 'sku')->ignore($this->product)],
             'data.description' => ['nullable', 'string', 'max:255'],
-            'data.wash_care' => ['required'],
+            'data.details' => ['nullable', 'string', 'max:255'],
+            'data.price' => ['required', 'numeric'],
+            'data.stock' => ['required', 'numeric'],
+            'data.discount' => ['required'],
             'data.fabric' => ['required'],
             'data.pattern' => ['required'],
             'data.sleeve' => ['required'],
@@ -85,28 +82,27 @@ class ProductRequest extends BaseFormRequest
             'data.meta_description' => ['required', 'string', 'max:255'],
             'data.meta_keywords' => ['required', 'string', 'max:255'],
             'data.is_featured' => ['integer', 'min:0', 'digits_between: 0,1'],
-            'data.section_id' => ['required', 'integer'],
-            'data.category_id' => ['required', 'integer'],
-            'data.brand_id' => ['required', 'integer'],
+            'data.category_id' => ['required', 'integer', 'exists:App\Models\Category,id'],
+            'data.brand_id' => ['required', 'integer', 'exists:App\Models\Brand,id'],
             'data.status' => ['integer', 'min:0', 'digits_between: 0,1'],
 
-            'data.photos' => ['required', 'array', 'min:1'],
-            'data.photos.*.name' => ['string', 'max:255'],
-            'data.photos.*.file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,gif', 'max:2048'],
+            'data.pictures' => ['array'],
+            'data.pictures.*.name' => ['string', 'max:255'],
+            'data.pictures.*.file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,gif', 'max:2048'],
 
-            'data.attributes' => ['required', 'array', 'min:1'],
-            'data.attributes.*.size' => ['required', 'string', 'max:255', 'distinct'],
-            'data.attributes.*.price' => ['required', 'numeric'],
-            'data.attributes.*.stock' => ['required', 'numeric'],
-            'data.attributes.*.sku' => ['required', 'string', 'max:255', 'distinct', Rule::unique('products_attributes', 'sku')->ignore($this->product->id, 'product_id')],
-            'data.attributes.*.status' => ['integer', 'min:0', 'digits_between: 0,1'],
+            // 'data.attributes' => ['required', 'array', 'min:1'],
+            // 'data.attributes.*.size' => ['required', 'string', 'max:255', 'distinct'],
+            // 'data.attributes.*.sku' => ['required', 'string', 'max:255', 'distinct', Rule::unique('products_attributes', 'sku')->ignore($this->product->id, 'product_id')],
+            // 'data.attributes.*.price' => ['required', 'numeric'],
+            // 'data.attributes.*.stock' => ['required', 'numeric'],
+            // 'data.attributes.*.status' => ['integer', 'min:0', 'digits_between: 0,1'],
         ];
     }
 
     public function destroy()
     {
         return [
-            'data.id' => ['required', 'integer', 'exists:products,id'],
+            'data.id' => ['required', 'integer', 'exists:App\Models\Product,id'],
         ];
     }
 
@@ -115,13 +111,11 @@ class ProductRequest extends BaseFormRequest
         return [
             'data.id' => 'id',
             'data.name' => 'name',
-            'data.code' => 'code',
-            'data.color' => 'color',
+            'data.sku' => 'sku',
+            'data.description' => 'description',
+            'data.details' => 'details',
             'data.price' => 'price',
             'data.discount' => 'discount',
-            'data.weight' => 'weight',
-            'data.description' => 'description',
-            'data.wash_care' => 'wash_care',
             'data.fabric' => 'fabric',
             'data.pattern' => 'pattern',
             'data.sleeve' => 'sleeve',
@@ -131,13 +125,12 @@ class ProductRequest extends BaseFormRequest
             'data.meta_description' => 'meta_description',
             'data.meta_keywords' => 'meta_keywords',
             'data.is_featured' => 'is_featured',
-            'data.section_id' => 'section_id',
             'data.category_id' => 'category_id',
             'data.brand_id' => 'brand_id',
+            'data.status' => 'status',
+            'data.pictures' => 'pictures',
             'data.attributes' => 'attributes',
             'data.attributes.*.sku' => 'sku',
-            'data.status' => 'status',
-            'data.photos' => 'photos',
         ];
     }
 }

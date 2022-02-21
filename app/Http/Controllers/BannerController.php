@@ -7,58 +7,47 @@ use App\Http\Requests\BaseFormRequest;
 use App\Http\Resources\BannerCollection;
 use App\Http\Resources\BannerResource;
 use App\Models\Banner;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Spatie\QueryBuilder\AllowedFilter;
-use Spatie\QueryBuilder\QueryBuilder;
-use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
-use Throwable;
+use App\Services\BannersService;
 
 class BannerController extends Controller
 {
-    const MODEL_WITH = ['photo'];
+    const MODEL_WITH = ['picture'];
 
-    public function index(Request $request)
+    function __construct()
     {
-        $models = QueryBuilder::for(Banner::class)->allowedFilters([AllowedFilter::exact('id'), 'name'])->with(self::MODEL_WITH);
+        $this->middleware('permission:banners.index|banners.create|banners.show|banners.edit|banners.destroy', ['only' => ['index']]);
+        $this->middleware('permission:banners.create', ['only' => ['create', 'store']]);
+        $this->middleware('permission:banners.edit', ['only' => ['edit', 'update']]);
+        $this->middleware('permission:banners.show', ['only' => ['show']]);
+        $this->middleware('permission:banners.destroy', ['only' => ['destroy', 'destroy_multiple']]);
+    }
 
-        // if (!(auth()->check() && auth()->user()->hasRole('super-admin'))) {
-        //     $models->where('status', 1);
-        // }
+    public function index(BannerRequest $request, BannersService $service)
+    {
+        $banners = $service->index($request)->with(self::MODEL_WITH);
 
-        $models = match ($request->has('size')) {
-            true => $models->paginate($request->query('size')),
-            default => $models->take(20)->get()
+        $banners = match ($request->has('size')) {
+            true => $banners->paginate($request->query('size')),
+            default => $banners->take(500)->get()
         };
 
         $additional = ['collections' => []];
 
-        return (new BannerCollection($models))->additional($additional);
+        return (new BannerCollection($banners))->additional($additional);
     }
 
-    public function create()
+    public function create(BannersService $service)
     {
-        $banner = new Banner();
+        $banner = $service->create();
 
         $additional = ['collections' => []];
 
         return (new BannerResource($banner))->additional($additional);
     }
 
-    public function store(BannerRequest $request)
+    public function store(BannerRequest $request, BannersService $service)
     {
-        DB::beginTransaction();
-        try {
-
-            $banner = Banner::create($request->input('data'));
-
-            $banner->syncMediaOne($request->data, 'photo', 'photos');
-
-            DB::commit();
-        } catch (Throwable $e) {
-            DB::rollBack();
-            throw new UnprocessableEntityHttpException($e->getMessage());
-        }
+        $banner = $service->store($request);
 
         $additional = ['meta' => ['message' => 'Successfully created.']];
 
@@ -74,41 +63,23 @@ class BannerController extends Controller
 
     public function edit(Banner $banner)
     {
-        return $this->show($banner);
+        $additional = ['collections' => []];
+
+        return (new BannerResource($banner->load(self::MODEL_WITH)))->additional($additional);
     }
 
-    public function update(BannerRequest $request, Banner $banner)
+    public function update(BannerRequest $request, Banner $banner, BannersService $service)
     {
-        DB::beginTransaction();
-        try {
-
-            $banner->update($request->input('data'));
-
-            $banner->syncMediaOne($request->data, 'photo', 'photos');
-
-            DB::commit();
-        } catch (Throwable $e) {
-            DB::rollBack();
-            throw new UnprocessableEntityHttpException($e->getMessage());
-        }
+        $banner = $service->update($request, $banner);
 
         $additional = ['meta' => ['message' => 'Successfully updated.']];
 
         return (new BannerResource($banner->load(self::MODEL_WITH)))->additional($additional);
     }
 
-    public function destroy(Banner $banner)
+    public function destroy(Banner $banner, BannersService $service)
     {
-        DB::beginTransaction();
-        try {
-
-            $banner->delete();
-
-            DB::commit();
-        } catch (Throwable $e) {
-            DB::rollBack();
-            throw new UnprocessableEntityHttpException($e->getMessage());
-        }
+        $banner = $service->destroy($banner);
 
         $additional = ['meta' => ['message' => 'Successfully deleted.']];
 

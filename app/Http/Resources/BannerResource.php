@@ -12,9 +12,10 @@ class BannerResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
+            'url' => $this->url,
             'status' => $this->status,
             'slug' => $this->slug,
-            'photo' => new PhotoResource($this->whenLoaded('photo')),
+            'picture' => new PictureResource($this->whenLoaded('picture')),
         ];
 
         if (!!$this->id) {

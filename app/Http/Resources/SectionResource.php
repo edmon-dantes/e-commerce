@@ -15,7 +15,7 @@ class SectionResource extends JsonResource
             'status' => $this->status,
             'slug' => $this->slug,
             'categories' => CategoryResource::collection($this->whenLoaded('categories')),
-            'photo' => new PhotoResource($this->whenLoaded('photo')),
+            'picture' => new PictureResource($this->whenLoaded('picture')),
         ];
 
         if (!!$this->id) {

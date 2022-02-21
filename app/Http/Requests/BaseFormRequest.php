@@ -48,4 +48,12 @@ class BaseFormRequest extends FormRequest
             //
         ];
     }
+
+    public function createRequest(string $request_class): BaseFormRequest
+    {
+        $request = $request_class::createFrom($this);
+        $app = app();
+        $request->setContainer($app)->setRedirector($app->make(Redirector::class));
+        return $request;
+    }
 }

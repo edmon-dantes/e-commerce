@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\UserRequest;
 use App\Http\Resources\UserResource;
 use App\Mail\Auth\ConfirmSignupMail;
 use App\Mail\Auth\ForgotPasswordMail;
 use App\Models\User;
+use App\Services\UsersService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,35 +24,30 @@ use Tymon\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
 {
-    const ACCESS_USERNAME = ['username', 'password'];
-    const ACCESS_EMAIL = ['email', 'password'];
+    const MODEL_WITH = ['picture'];
 
-    const MODEL_WITH = ['photo'];
-    const PHOTO_PATH = 'photos/users/';
-    const PHOTO_SIZES = [[425, 271], [500, 500]];
-
-    public function login()
+    public function login(LoginRequest $request)
     {
-        if (!$token = JWTAuth::customClaims(['token' => Str::random(60)])->attempt(request()->only(request()->filled(self::ACCESS_USERNAME) ? self::ACCESS_USERNAME : self::ACCESS_EMAIL))) {
+        if (!$token = JWTAuth::attempt($request['data'])) {
             throw new JWTException('User or password do not exist.');
         }
 
         $user = JWTAuth::user();
 
-        $this->isValidAccess($user);
+        // $this->isValidAccess($user);
 
-        $additional = ['collections' => [], 'meta' => ['message' => 'Successfully logged.', 'token' => $this->getFormatTokenJwt($token)]];
+        $additional = ['collections' => [], 'meta' => ['message' => 'Successfully logged.', 'token' => $this->getJwtToken($token)]];
 
         return (new UserResource($user->load(self::MODEL_WITH)))->additional($additional);
     }
 
-    public function signup(UserRequest $request)
+    public function signup(UserRequest $request, UsersService $service)
     {
-        $user = ((new UserController)->store($request))->resource;
+        $user = $service->store($request);
 
-        $additional = ['meta' => ['message' => 'Created successfully, enter your email account to validate the entered data.']];
+        $additional = ['meta' => ['message' => 'Successfully created, enter your email account to validate the entered data.']];
 
-        $this->sendConfirmMail($user);
+        // $this->sendConfirmMail($user);
 
         return (new UserResource($user->load(self::MODEL_WITH)))->additional($additional);
     }
@@ -78,32 +75,34 @@ class AuthController extends Controller
             throw new UnprocessableEntityHttpException($e->getMessage());
         }
 
-        $additional = ['collections' => [], 'meta' => ['message' => 'Successfully confirmed.', 'token' => $this->getFormatTokenJwt($token)]];
+        $additional = ['collections' => [], 'meta' => ['message' => 'Successfully confirmed.', 'token' => $this->getJwtToken($token)]];
 
         return (new UserResource($user->load(self::MODEL_WITH)))->additional($additional);
     }
 
     public function me(Request $request)
     {
-        $user = ((new UserController)->show(JWTAuth::user()))->resource;
+        $additional = ['collections' => []];
 
-        $additional = [];
-
-        return (new UserResource($user->load(self::MODEL_WITH)))->additional($additional);
+        return (new UserResource(JWTAuth::user()->load(self::MODEL_WITH)))->additional($additional);
     }
 
-    public function updateMe(UserRequest $request)
+    public function updateMe(UserRequest $request, UsersService $service)
     {
-        $user = ((new UserController)->update($request, JWTAuth::user()))->resource;
+        $user = $service->update($request, JWTAuth::user());
 
-        $additional = ['meta' => ['message' => 'Updated successfully.']];
+        $additional = ['meta' => ['message' => 'Successfully updated.']];
 
         return (new UserResource($user->load(self::MODEL_WITH)))->additional($additional);
     }
 
     public function logout()
     {
-        Auth::logout();
+        try {
+            Auth::logout();
+        } catch (Throwable $e) {
+            throw new UnprocessableEntityHttpException($e->getMessage());
+        }
 
         return response()->json([
             'meta' => [
@@ -145,27 +144,21 @@ class AuthController extends Controller
             throw new UnprocessableEntityHttpException($e->getMessage());
         }
 
-        $additional = ['collections' => [], 'meta' => ['message' => 'Password changed.', 'token' => $this->getFormatTokenJwt($token)]];
+        $additional = ['collections' => [], 'meta' => ['message' => 'Password changed.', 'token' => $this->getJwtToken($token)]];
 
         return (new UserResource($user->load(self::MODEL_WITH)))->additional($additional);
     }
 
     public function refresh()
     {
-        $tokenValue = JWTAuth::getToken()->get();
-
-        list($header, $payload, $signature) = explode(".", $tokenValue);
-        $payload = json_decode(base64_decode($payload));
-
-        $now = time();
-        $exp = $payload->exp;
-
-        if ($exp < $now) {
-            $tokenValue = Auth::refresh();
+        try {
+            $token = JWTAuth::refresh(JWTAuth::getToken());
+        } catch (Throwable $e) {
+            throw new UnprocessableEntityHttpException($e->getMessage());
         }
 
         return response()->json([
-            'meta' => array('token' => $this->getFormatTokenJwt($tokenValue)),
+            'meta' => array('token' => $this->getJwtToken($token)),
         ]);
     }
 
@@ -208,7 +201,7 @@ class AuthController extends Controller
         return  $token;
     }
 
-    protected function getFormatTokenJwt($token)
+    protected function getJwtToken($token)
     {
         return [
             'type' => 'bearer',

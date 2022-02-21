@@ -14,7 +14,7 @@ class BrandResource extends JsonResource
             'description' => $this->description,
             'status' => $this->status,
             'slug' => $this->slug,
-            'photo' => new PhotoResource($this->whenLoaded('photo')),
+            'picture' => new PictureResource($this->whenLoaded('picture')),
         ];
 
         if (!!$this->id) {

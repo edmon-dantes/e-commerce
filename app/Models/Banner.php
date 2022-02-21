@@ -5,11 +5,13 @@ namespace App\Models;
 use App\Traits\BaseModel;
 use App\Traits\SyncMedia;
 use Cviebrock\EloquentSluggable\Sluggable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Illuminate\Support\Str;
 
 class Banner extends Model implements HasMedia
 {
@@ -20,9 +22,8 @@ class Banner extends Model implements HasMedia
     protected $fillable = [
         'name',
         'description',
-        'link',
+        'url',
         'status',
-        'slug',
     ];
 
     public function getRouteKeyName()
@@ -44,9 +45,25 @@ class Banner extends Model implements HasMedia
         $this->attributes['status'] = (int) $value;
     }
 
-    public function photo()
+    public function picture()
     {
-        return $this->morphOne(config('media-library.media_model'), 'model')->where('collection_name', 'photos')->latest();
+        return $this->morphOne(config('media-library.media_model'), 'model')->where('collection_name', 'pictures')->latest();
+    }
+
+    public function scopeSearch(Builder $query, string $value): Builder
+    {
+        return $query->where('name', 'like', '%' . $value . '%');
+    }
+    public function scopeStatus(Builder $query, string $value): Builder
+    {
+        return $query->where('status', (int) $value);
+    }
+
+    protected static function booted()
+    {
+        static::saving(function ($model) {
+           //  $model->slug = Str::slug($model->name);
+        });
     }
 
     public function registerMediaConversions(Media $media = null): void

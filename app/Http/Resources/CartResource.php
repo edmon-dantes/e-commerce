@@ -14,7 +14,7 @@ class CartResource extends JsonResource
             'price' => $this->price,
             'quantity' => $this->quantity,
             'attributes' => $this->attributes,
-            'product' => new ProductResource($this->associatedModel->load('photos')),
+            'product' => new ProductResource($this->associatedModel->load('pictures')),
             'sub_total' => $this->getPriceSum(),
             'price_with_condition' => $this->getPriceWithConditions(),
             'total' => $this->getPriceSumWithConditions()

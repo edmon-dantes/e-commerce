@@ -7,58 +7,47 @@ use App\Http\Requests\CategoryRequest;
 use App\Http\Resources\CategoryCollection;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Spatie\QueryBuilder\AllowedFilter;
-use Spatie\QueryBuilder\QueryBuilder;
-use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
-use Throwable;
+use App\Services\CategoriesService;
 
 class CategoryController extends Controller
 {
-    const MODEL_WITH = ['section', 'parent', 'childrens', 'photo'];
+    const MODEL_WITH = ['section', 'parent', 'children_recursive', 'picture'];
 
-    public function index(Request $request)
+    function __construct()
     {
-        $models = QueryBuilder::for(Category::class)->allowedFilters([AllowedFilter::exact('id'), AllowedFilter::exact('section_id'), AllowedFilter::scope('null'), 'name'])->with(self::MODEL_WITH);
+        $this->middleware('permission:categories.index|categories.create|categories.show|categories.edit|categories.destroy', ['only' => ['index']]);
+        $this->middleware('permission:categories.create', ['only' => ['create', 'store']]);
+        $this->middleware('permission:categories.edit', ['only' => ['edit', 'update']]);
+        $this->middleware('permission:categories.show', ['only' => ['show']]);
+        $this->middleware('permission:categories.destroy', ['only' => ['destroy', 'destroy_multiple']]);
+    }
 
-        // if (!(auth()->check() && auth()->user()->hasRole('super-admin'))) {
-        //     $models->where('status', 1);
-        // }
+    public function index(CategoryRequest $request, CategoriesService $service)
+    {
+        $categories = $service->index($request)->with(self::MODEL_WITH);
 
-        $models = match ($request->has('size')) {
-            true => $models->paginate($request->query('size')),
-            default => $models->take(20)->get()
+        $categories = match ($request->has('size')) {
+            true => $categories->paginate($request->query('size')),
+            default => $categories->take(500)->get()
         };
 
         $additional = ['collections' => []];
 
-        return (new CategoryCollection($models))->additional($additional);
+        return (new CategoryCollection($categories))->additional($additional);
     }
 
-    public function create()
+    public function create(CategoriesService $service)
     {
-        $category = new Category();
+        $category = $service->create();
 
         $additional = ['collections' => []];
 
         return (new CategoryResource($category))->additional($additional);
     }
 
-    public function store(CategoryRequest $request)
+    public function store(CategoryRequest $request, CategoriesService $service)
     {
-        DB::beginTransaction();
-        try {
-
-            $category = Category::create($request->input('data'));
-
-            $category->syncMediaOne($request->data, 'photo', 'photos');
-
-            DB::commit();
-        } catch (Throwable $e) {
-            DB::rollBack();
-            throw new UnprocessableEntityHttpException($e->getMessage());
-        }
+        $category = $service->store($request);
 
         $additional = ['meta' => ['message' => 'Successfully created.']];
 
@@ -77,38 +66,18 @@ class CategoryController extends Controller
         return $this->show($category);
     }
 
-    public function update(CategoryRequest $request, Category $category)
+    public function update(CategoryRequest $request, Category $category, CategoriesService $service)
     {
-        DB::beginTransaction();
-        try {
-
-            $category->update($request->input('data'));
-
-            $category->syncMediaOne($request->data, 'photo', 'photos');
-
-            DB::commit();
-        } catch (Throwable $e) {
-            DB::rollBack();
-            throw new UnprocessableEntityHttpException($e->getMessage());
-        }
+        $category = $service->update($request, $category);
 
         $additional = ['meta' => ['message' => 'Successfully updated.']];
 
         return (new CategoryResource($category->load(self::MODEL_WITH)))->additional($additional);
     }
 
-    public function destroy(Category $category)
+    public function destroy(Category $category, CategoriesService $service)
     {
-        DB::beginTransaction();
-        try {
-
-            $category->delete();
-
-            DB::commit();
-        } catch (Throwable $e) {
-            DB::rollBack();
-            throw new UnprocessableEntityHttpException($e->getMessage());
-        }
+        $category = $service->destroy($category);
 
         $additional = ['meta' => ['message' => 'Successfully deleted.']];
 

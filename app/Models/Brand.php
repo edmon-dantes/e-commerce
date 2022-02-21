@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\BaseModel;
 use App\Traits\SyncMedia;
 use Cviebrock\EloquentSluggable\Sluggable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\HasMedia;
@@ -19,7 +20,6 @@ class Brand extends Model implements HasMedia
         'name',
         'description',
         'status',
-        'slug',
     ];
 
     public function getRouteKeyName()
@@ -41,9 +41,18 @@ class Brand extends Model implements HasMedia
         $this->attributes['status'] = (int) $value;
     }
 
-    public function photo()
+    public function picture()
     {
-        return $this->morphOne(config('media-library.media_model'), 'model')->where('collection_name', 'photos');
+        return $this->morphOne(config('media-library.media_model'), 'model')->where('collection_name', 'pictures');
+    }
+
+    public function scopeSearch(Builder $query, string $value): Builder
+    {
+        return $query->where('name', 'like', '%' . $value . '%');
+    }
+    public function scopeStatus(Builder $query, string $value): Builder
+    {
+        return $query->where('status', (int) $value);
     }
 
     public function registerMediaConversions(Media $media = null): void

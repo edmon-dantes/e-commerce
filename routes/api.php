@@ -5,11 +5,8 @@ use App\Http\Controllers\BannerController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\Ecommerce\CulquiController;
-use App\Http\Controllers\Ecommerce\OrderController;
-use App\Http\Controllers\Ecommerce\PaypalController;
-use App\Http\Controllers\Permission\PermissionController;
-use App\Http\Controllers\Permission\RoleController;
+use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\UserController;
@@ -41,32 +38,39 @@ Route::group(['prefix' => 'admin'], function () {
     Route::post('/auth/login', [AuthController::class, 'login'])->name('auth.login');
     Route::post('/auth/signup', [AuthController::class, 'signup'])->name('auth.signup');
     Route::get('/auth/confirm-signup', [AuthController::class, 'confirmSignup'])->name('auth.confirm-signup');
-    Route::group(['middleware' => ['jwt.auth']], function ($router) {
-        Route::get('/auth/me', [AuthController::class, 'me'])->name('auth.me')->middleware(['permission:users.show']);
-        Route::put('/auth/update-me', [AuthController::class, 'updateMe'])->name('auth.update-me')->middleware(['permission:users.edit']);
-    });
+    Route::post('/auth/refresh', [AuthController::class, 'refresh'])->name('auth.refresh');
+    Route::post('/auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
 
-    Route::delete('/banners/multiple', [BannerController::class, 'destroy_multiple'])->name('banners.destroy.multiple'); // ->middleware(['permission:banners.destroy.multiple']);
-    Route::resource('/banners', BannerController::class); // ->middleware(['permission:banners.index|banners.create|banners.show|banners.edit|banners.destroy']); // ->only(['index', ''])
-
-    Route::delete('/sections/multiple', [SectionController::class, 'destroy_multiple'])->name('sections.destroy.multiple'); // ->middleware(['permission:sections.destroy.multiple']);
-    Route::resource('/sections', SectionController::class); // ->middleware(['permission:sections.index|sections.create|sections.show|sections.edit|sections.destroy']);
-
-    Route::delete('/categories/multiple', [CategoryController::class, 'destroy_multiple'])->name('categories.destroy.multiple'); // ->middleware(['permission:categories.destroy.multiple']);
-    Route::resource('/categories', CategoryController::class); // ->middleware(['permission:categories.index|categories.create|categories.show|categories.edit|categories.destroy']);
-
-    Route::delete('/brands/multiple', [BrandController::class, 'destroy_multiple'])->name('brands.destroy.multiple'); // ->middleware(['permission:brands.destroy.multiple']);
-    Route::resource('/brands', BrandController::class); // ->middleware(['permission:brands.index|brands.create|brands.show|brands.edit|brands.destroy']);
-
-    Route::delete('/products/multiple', [ProductController::class, 'destroy_multiple'])->name('products.destroy.multiple'); // ->middleware(['permission:products.destroy.multiple']);
-    Route::resource('/products', ProductController::class); // ->middleware(['permission:products.index|products.create|products.show|products.edit|products.destroy']);
-
-    Route::delete('/users/multiple', [UserController::class, 'destroy_multiple'])->name('users.destroy.multiple'); // ->middleware(['permission:products.destroy.multiple']);
-    Route::resource('/users', UserController::class); // ->middleware(['permission:users.index|users.create|users.show|users.edit|users.destroy']);
-
-    Route::resource('/cart_items', CartController::class, [])->only(['index', 'store', 'update', 'destroy']);
+    Route::delete('/cart_items/all', [CartController::class, 'destroy_all'])->name('cart_items.destroy.all');
+    Route::resource('/cart_items', CartController::class, [])->names('cart_items')->only(['index', 'store', 'update', 'destroy']);
 
     Route::group(['middleware' => ['jwt.auth']], function ($router) {
+        Route::get('/auth/me', [AuthController::class, 'me'])->name('auth.me'); // ->middleware(['permission:users.show']);
+        Route::put('/auth/update-me', [AuthController::class, 'updateMe'])->name('auth.update-me'); // ->middleware(['permission:users.edit']);
+
+        Route::delete('/roles/multiple', [RoleController::class, 'destroy_multiple'])->name('roles.destroy.multiple'); // ->middleware(['permission:roles.destroy.multiple']);
+        Route::resource('/roles', RoleController::class)->names('roles'); // ->middleware(['permission:roles.index|roles.create|roles.show|roles.edit|roles.destroy']);
+
+        Route::delete('/permissions/multiple', [PermissionController::class, 'destroy_multiple'])->name('permissions.destroy.multiple'); // ->middleware(['permission:permissions.destroy.multiple']);
+        Route::resource('/permissions', PermissionController::class)->names('permissions'); // ->middleware(['permission:permissions.index|permissions.create|permissions.show|permissions.edit|permissions.destroy']);
+
+        Route::delete('/users/multiple', [UserController::class, 'destroy_multiple'])->name('users.destroy.multiple'); // ->middleware(['permission:users.destroy.multiple']);
+        Route::resource('/users', UserController::class)->names('users'); // ->middleware(['permission:users.index|users.create|users.show|users.edit|users.destroy']);
+
+        Route::delete('/banners/multiple', [BannerController::class, 'destroy_multiple'])->name('banners.destroy.multiple'); // ->middleware(['permission:banners.destroy.multiple']);
+        Route::resource('/banners', BannerController::class)->names('banners'); // ->middleware(['permission:banners.index|banners.create|banners.show|banners.edit|banners.destroy']); // ->only(['index', ''])
+
+        Route::delete('/sections/multiple', [SectionController::class, 'destroy_multiple'])->name('sections.destroy.multiple'); // ->middleware(['permission:sections.destroy.multiple']);
+        Route::resource('/sections', SectionController::class)->names('sections'); // ->middleware(['permission:sections.index|sections.create|sections.show|sections.edit|sections.destroy']);
+
+        Route::delete('/categories/multiple', [CategoryController::class, 'destroy_multiple'])->name('categories.destroy.multiple'); // ->middleware(['permission:categories.destroy.multiple']);
+        Route::resource('/categories', CategoryController::class)->names('categories'); // ->middleware(['permission:categories.index|categories.create|categories.show|categories.edit|categories.destroy']);
+
+        Route::delete('/brands/multiple', [BrandController::class, 'destroy_multiple'])->name('brands.destroy.multiple'); // ->middleware(['permission:brands.destroy.multiple']);
+        Route::resource('/brands', BrandController::class)->names('brands'); // ->middleware(['permission:brands.index|brands.create|brands.show|brands.edit|brands.destroy']);
+
+        Route::delete('/products/multiple', [ProductController::class, 'destroy_multiple'])->name('products.destroy.multiple'); // ->middleware(['permission:products.destroy.multiple']);
+        Route::resource('/products', ProductController::class)->names('products'); // ->middleware(['permission:products.index|products.create|products.show|products.edit|products.destroy']);
     });
 });
 

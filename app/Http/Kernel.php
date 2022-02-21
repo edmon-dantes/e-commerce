@@ -68,6 +68,7 @@ class Kernel extends HttpKernel
         'permission' => \Spatie\Permission\Middlewares\PermissionMiddleware::class, /*rcastro*/
         'role_or_permission' => \Spatie\Permission\Middlewares\RoleOrPermissionMiddleware::class, /*rcastro*/
         'jwt.auth' => \Tymon\JWTAuth\Http\Middleware\Authenticate::class, /*rcastro*/
+        // 'jwt.refresh' => \Tymon\JWTAuth\Http\Middleware\RefreshToken::class, /*rcastro*/
         // 'jwt.refresh2' => \App\Http\Middleware\RefreshTokenMiddleware::class, /*rcastro*/
         // 'jwt.refresh3' => \App\Http\Middleware\InvitedToken::class, /*rcastro*/
     ];

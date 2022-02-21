@@ -18,28 +18,28 @@ class BrandRequest extends BaseFormRequest
             'data.description' => ['nullable', 'string', 'max:255'],
             'data.status' => ['integer', 'min:0', 'digits_between: 0,1'],
 
-            'data.photo.name' => ['string', 'max:255'],
-            'data.photo.file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,gif', 'max:2048'],
+            'data.picture.name' => ['string', 'max:255'],
+            'data.picture.file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,gif', 'max:2048'],
         ];
     }
 
     public function update()
     {
         return [
-            'data.id' => ['required', 'integer', 'exists:brands,id'],
+            'data.id' => ['required', 'integer', 'exists:App\Models\Brand,id'],
             'data.name' => ['required', 'string', 'max:255',  Rule::unique('brands', 'name')->ignore($this->brand)],
             'data.description' => ['nullable', 'string', 'max:255'],
             'data.status' => ['integer', 'min:0', 'digits_between: 0,1'],
 
-            'data.photo.name' => ['string', 'max:255'],
-            'data.photo.file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,gif', 'max:2048'],
+            'data.picture.name' => ['string', 'max:255'],
+            'data.picture.file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,gif', 'max:2048'],
         ];
     }
 
     public function destroy()
     {
         return [
-            'data.id' => ['required', 'integer', 'exists:brands,id'],
+            'data.id' => ['required', 'integer', 'exists:App\Models\Brand,id'],
         ];
     }
 
@@ -50,7 +50,7 @@ class BrandRequest extends BaseFormRequest
             'data.name' => 'name',
             'data.description' => 'description',
             'data.status' => 'status',
-            'data.photo' => 'photo',
+            'data.picture' => 'picture',
         ];
     }
 }

@@ -16,14 +16,12 @@ class CreateProductsTable extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('name');
-            $table->string('code')->unique();
-            $table->string('color');
+            $table->string('sku')->unique();
             $table->float('price')->default(0);
+            $table->bigInteger('stock')->default(0);
             $table->float('discount')->default(0);
-            $table->float('weight')->default(0);
             $table->text('description')->nullable();
             $table->text('details')->nullable();
-            $table->string('wash_care');
             $table->string('fabric');
             $table->string('pattern');
             $table->string('sleeve');
@@ -43,9 +41,8 @@ class CreateProductsTable extends Migration
             // $table->decimal('sale_price', 12, 2)->default(0);
             // $table->string('sku', 12);
             // $table->string('size', 12);
-            // $table->bigInteger('stock')->default(0);
 
-            $table->unsignedBigInteger('section_id');
+            // $table->unsignedBigInteger('section_id');
             $table->unsignedBigInteger('category_id');
             $table->unsignedBigInteger('brand_id');
 
@@ -54,7 +51,7 @@ class CreateProductsTable extends Migration
 
             $table->timestamps();
 
-            $table->foreign('section_id')->references('id')->on('sections')->onDelete('cascade')->onUpdate('cascade');
+            // $table->foreign('section_id')->references('id')->on('sections')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('category_id')->references('id')->on('categories')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('brand_id')->references('id')->on('brands')->onDelete('cascade')->onUpdate('cascade');
         });

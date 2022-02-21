@@ -6,6 +6,7 @@ use App\Traits\BaseModel;
 use App\Traits\SyncMedia;
 use Cviebrock\EloquentSluggable\Sluggable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\HasMedia;
@@ -27,7 +28,6 @@ class Category extends Model implements HasMedia
         'section_id',
         'parent_id',
         'status',
-        'slug',
     ];
 
     public function getRouteKeyName()
@@ -71,9 +71,14 @@ class Category extends Model implements HasMedia
         return $this->belongsTo(Category::class, 'parent_id');
     }
 
-    public function childrens()
+    public function children()
     {
-        return $this->hasMany(Category::class, 'parent_id')->with('childrens.photo');
+        return $this->hasMany(Category::class, 'parent_id');
+    }
+
+    public function children_recursive()
+    {
+        return $this->children()->with(['children_recursive']);
     }
 
     public function products()
@@ -81,11 +86,15 @@ class Category extends Model implements HasMedia
         return $this->hasMany(Product::class); // ->where('status', 1);
     }
 
-    public function photo()
+    public function picture()
     {
-        return $this->morphOne(config('media-library.media_model'), 'model')->where('collection_name', 'photos');
+        return $this->morphOne(config('media-library.media_model'), 'model')->where('collection_name', 'pictures');
     }
 
+    public function scopeSearch(Builder $query, string $value): Builder
+    {
+        return $query->where('name', 'like', '%' . $value . '%');
+    }
     public function scopeNull(Builder $query, string $columnsString): Builder
     {
         $columns = explode(',', $columnsString);
@@ -94,11 +103,26 @@ class Category extends Model implements HasMedia
         }
         return $query;
     }
+    public function scopeStatus(Builder $query, string $value): Builder
+    {
+        return $query->where('status', (int) $value);
+    }
 
     public function registerMediaConversions(Media $media = null): void
     {
         $this->addMediaConversion('thumb-cropped')->crop('crop-center', 200, 200);
         // $this->addMediaConversion('thumb')->height(200)->sharpen(10);
+    }
+
+    protected static function booted()
+    {
+        static::saving(function ($model) {
+            $model->children_recursive->each->update(['section_id' => $model->section_id]);
+        });
+
+        static::deleting(function ($model) {
+            $model->children->each->update(['parent_id' => null]);
+        });
     }
 }
 

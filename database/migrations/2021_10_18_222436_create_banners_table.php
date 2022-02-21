@@ -17,7 +17,7 @@ class CreateBannersTable extends Migration
             $table->bigIncrements('id');
             $table->string('name')->unique();
             $table->text('description')->nullable();
-            $table->string('link')->unique();
+            $table->string('url')->unique();
             $table->tinyInteger('status')->default(0);
             $table->string('slug')->unique();
             $table->timestamps();

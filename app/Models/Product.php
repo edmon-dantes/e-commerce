@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\BaseModel;
+use App\Traits\Helpers;
 use App\Traits\SyncMedia;
 use Cviebrock\EloquentSluggable\Sluggable;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,20 +15,18 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Product extends Model implements HasMedia
 {
-    use HasFactory, Sluggable, InteractsWithMedia, SyncMedia, BaseModel;
+    use HasFactory, Sluggable, InteractsWithMedia, SyncMedia, BaseModel, helpers;
 
     protected $guard_name = 'api';
 
     protected $fillable = [
         'name',
-        'code',
-        'color',
-        'price',
-        'discount',
-        'weight',
+        'sku',
         'description',
         'details',
-        'wash_care',
+        'price',
+        'stock',
+        'discount',
         'fabric',
         'pattern',
         'sleeve',
@@ -37,12 +36,9 @@ class Product extends Model implements HasMedia
         'meta_description',
         'meta_keywords',
         'is_featured',
-        'status',
-        'section_id',
         'category_id',
         'brand_id',
-        'slug',
-        'fullname',
+        'status',
     ];
 
     protected $cast = [
@@ -67,35 +63,37 @@ class Product extends Model implements HasMedia
     {
         $this->attributes['is_featured'] = (int) $value;
     }
-    public function setSectionIdAttribute($value)
-    {
-        $this->attributes['section_id'] = (int) $value;
-    }
+
     public function setCategoryIdAttribute($value)
     {
         $this->attributes['category_id'] = (int) $value;
     }
+
     public function setBrandIdAttribute($value)
     {
         $this->attributes['brand_id'] = (int) $value;
     }
+
     public function setStatusAttribute($value)
     {
         $this->attributes['status'] = (int) $value;
     }
-    public function setCodeAttribute($value)
-    {
-        $this->attributes['code'] = $value;
-        $this->setFullnameAttribute();
-    }
+
     public function setFullnameAttribute()
     {
-        $this->attributes['fullname'] = trim(join(' ', array($this->name, $this->code)));
+        $this->attributes['fullname'] = trim(join(' ', array($this->name, $this->sku)));
     }
 
-    public function section()
+    public function setNameAttribute($value)
     {
-        return $this->belongsTo(Section::class); // ->select('id', 'name'); // ->where('status', 1);
+        $this->attributes['name'] = $value;
+        $this->setFullnameAttribute();
+    }
+
+    public function setSkuAttribute($value)
+    {
+        $this->attributes['sku'] = $value;
+        $this->setFullnameAttribute();
     }
 
     public function category()
@@ -103,25 +101,50 @@ class Product extends Model implements HasMedia
         return $this->belongsTo(Category::class); // ->select('id', 'name'); // ->where('status', 1);
     }
 
-    public function attributes()
-    {
-        return $this->hasMany(ProductsAttribute::class); // ->where('status', 1);
-    }
+    // public function attributes()
+    // {
+    //     return $this->hasMany(ProductsAttribute::class); // ->where('status', 1);
+    // }
 
     public function brand()
     {
         return $this->belongsTo(Brand::class); // ->select('id', 'name'); // ->where('status', 1);
     }
 
-    // public function photo()
-    // {
-    //     return $this->getFirstMedia('photos');
-    // return $this->morphOne(Photo::class, 'photoable')->latest();
-    // }
-
-    public function photos()
+    public function pictures()
     {
-        return $this->morphMany(config('media-library.media_model'), 'model')->where('collection_name', 'photos');
+        return $this->morphMany(config('media-library.media_model'), 'model')->where('collection_name', 'pictures');
+    }
+
+    public function scopeSection(Builder $query, ...$value): Builder
+    {
+        $query->whereHas('section', function (Builder $query) use ($value) {
+            $query->whereIn('slug', $value);
+        });
+
+        return $query;
+    }
+
+    public function scopeCategory(Builder $query, ...$value): Builder
+    {
+        $categories = Category::whereIn('slug', $value)->with('children')->get()->toArray();
+
+        $categories_slug = array_column($this->flatten($categories), 'slug');
+
+        $query->whereHas('category', function (Builder $query) use ($categories_slug) {
+            $query->whereIn('slug', $categories_slug);
+        });
+
+        return $query;
+    }
+
+    public function scopeBrand(Builder $query, ...$value): Builder
+    {
+        $query->whereHas('brand', function (Builder $query) use ($value) {
+            $query->whereIn('slug', $value);
+        });
+
+        return $query;
     }
 
     public function scopeIsFeatured(Builder $query, string $value): Builder
@@ -129,6 +152,10 @@ class Product extends Model implements HasMedia
         return $query->where('is_featured', (int) $value);
     }
 
+    public function scopeSearch(Builder $query, string $value): Builder
+    {
+        return $query->where('fullname', 'like', '%' . $value . '%')->orWhere('sku', 'like', '%' . $value . '%');
+    }
     public function scopeStatus(Builder $query, string $value): Builder
     {
         return $query->where('status', (int) $value);
@@ -138,9 +165,9 @@ class Product extends Model implements HasMedia
     {
         // const PHOTO_SIZES = [[425, 271], [500, 500], [850, 500], [1000, 591], [1294, 500]];
 
-        // $this->addMediaCollection('photos')->withResponsiveImages();
+        // $this->addMediaCollection('pictures')->withResponsiveImages();
 
-        $this->addMediaCollection('photos')->registerMediaConversions(function (Media $media) {
+        $this->addMediaCollection('pictures')->registerMediaConversions(function (Media $media) {
             // $this->addMediaConversion('thumb')
             //     ->width(200)
             //     ->height(200)

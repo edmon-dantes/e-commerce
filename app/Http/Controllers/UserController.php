@@ -7,59 +7,47 @@ use App\Http\Requests\UserRequest;
 use App\Http\Resources\UserCollection;
 use App\Http\Resources\UserResource;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Spatie\QueryBuilder\AllowedFilter;
-use Spatie\QueryBuilder\QueryBuilder;
-use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
-use Throwable;
+use App\Services\UsersService;
 
 class UserController extends Controller
 {
-    const MODEL_WITH = ['photo'];
+    const MODEL_WITH = ['picture', 'roles', 'permissions'];
 
-    public function index(Request $request)
+    function __construct()
     {
-        $models = QueryBuilder::for(User::class)->allowedFilters([AllowedFilter::exact('id'), 'fullname'])->with(self::MODEL_WITH);
+        $this->middleware('permission:users.index|users.create|users.show|users.edit|users.destroy', ['only' => ['index']]);
+        $this->middleware('permission:users.create', ['only' => ['create', 'store']]);
+        $this->middleware('permission:users.edit', ['only' => ['edit', 'update']]);
+        $this->middleware('permission:users.show', ['only' => ['show']]);
+        $this->middleware('permission:users.destroy', ['only' => ['destroy', 'destroy_multiple']]);
+    }
 
-        // if (!(auth()->check() && auth()->user()->hasRole('super-admin'))) {
-        //     $models->where('status', 1);
-        // }
+    public function index(UserRequest $request, UsersService $service)
+    {
+        $users = $service->index($request)->with(self::MODEL_WITH);
 
-        $models = match ($request->has('size')) {
-            true => $models->paginate($request->query('size')),
-            default => $models->take(20)->get()
+        $users = match ($request->has('size')) {
+            true => $users->paginate($request->query('size')),
+            default => $users->take(500)->get()
         };
 
         $additional = ['collections' => []];
 
-        return (new UserCollection($models))->additional($additional);
+        return (new UserCollection($users))->additional($additional);
     }
 
-    public function create()
+    public function create(UsersService $service)
     {
-        $user = new User();
+        $user = $service->create();
 
         $additional = ['collections' => []];
 
         return (new UserResource($user))->additional($additional);
     }
 
-    public function store(UserRequest $request)
+    public function store(UserRequest $request, UsersService $service)
     {
-        DB::beginTransaction();
-        try {
-
-            $user = User::create($request->input('data'));
-            $user->assignRole('client');
-
-            $user->syncMediaOne($request->data, 'photo', 'photos');
-
-            DB::commit();
-        } catch (Throwable $e) {
-            DB::rollBack();
-            throw new UnprocessableEntityHttpException($e->getMessage());
-        }
+        $user = $service->store($request);
 
         $additional = ['meta' => ['message' => 'Successfully created.']];
 
@@ -70,46 +58,30 @@ class UserController extends Controller
     {
         $additional = ['collections' => []];
 
+        dd($user->getPermissionsViaRoles()->toArray());
+
         return (new UserResource($user->load(self::MODEL_WITH)))->additional($additional);
     }
 
     public function edit(User $user)
     {
-        return $this->show($user);
+        $additional = ['collections' => []];
+
+        return (new UserResource($user->load(self::MODEL_WITH)))->additional($additional);
     }
 
-    public function update(UserRequest $request, User $user)
+    public function update(UserRequest $request, User $user, UsersService $service)
     {
-        DB::beginTransaction();
-        try {
-
-            $user->update($request->input('data'));
-
-            $user->syncMediaOne($request->data, 'photo', 'photos');
-
-            DB::commit();
-        } catch (Throwable $e) {
-            DB::rollBack();
-            throw new UnprocessableEntityHttpException($e->getMessage());
-        }
+        $user = $service->update($request, $user);
 
         $additional = ['meta' => ['message' => 'Successfully updated.']];
 
         return (new UserResource($user->load(self::MODEL_WITH)))->additional($additional);
     }
 
-    public function destroy(User $user)
+    public function destroy(User $user, UsersService $service)
     {
-        DB::beginTransaction();
-        try {
-
-            $user->delete();
-
-            DB::commit();
-        } catch (Throwable $e) {
-            DB::rollBack();
-            throw new UnprocessableEntityHttpException($e->getMessage());
-        }
+        $user = $service->destroy($user);
 
         $additional = ['meta' => ['message' => 'Successfully deleted.']];
 

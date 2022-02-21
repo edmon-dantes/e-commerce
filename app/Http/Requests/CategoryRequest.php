@@ -21,11 +21,11 @@ class CategoryRequest extends BaseFormRequest
             'data.meta_description' => ['required', 'string', 'max:255'],
             'data.meta_keywords' => ['required', 'string', 'max:255'],
             'data.parent_id' => ['nullable', 'integer'],
-            'data.section_id' => ['required', 'integer'],
+            'data.section_id' => ['required', 'integer', 'exists:App\Models\Section,id'],
             'data.status' => ['integer', 'min:0', 'digits_between: 0,1'],
 
-            'data.photo.name' => ['string', 'max:255'],
-            'data.photo.file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,gif', 'max:2048'],
+            'data.picture.name' => ['string', 'max:255'],
+            'data.picture.file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,gif', 'max:2048'],
         ];
     }
 
@@ -33,7 +33,7 @@ class CategoryRequest extends BaseFormRequest
     {
 
         return [
-            'data.id' => ['required', 'integer', 'exists:categories,id'],
+            'data.id' => ['required', 'integer', 'exists:App\Models\Category,id'],
             'data.name' => ['required', 'string', 'max:255', Rule::unique('categories', 'name')->ignore($this->category)],
             'data.description' => ['nullable', 'string', 'max:255'],
             'data.discount' => ['required', 'numeric'],
@@ -41,18 +41,18 @@ class CategoryRequest extends BaseFormRequest
             'data.meta_description' => ['required', 'string', 'max:255'],
             'data.meta_keywords' => ['required', 'string', 'max:255'],
             'data.parent_id' => ['nullable', 'integer'],
-            'data.section_id' => ['required', 'integer'],
+            'data.section_id' => ['required', 'integer', 'exists:App\Models\Section,id'],
             'data.status' => ['integer', 'min:0', 'digits_between: 0,1'],
 
-            'data.photo.name' => ['string', 'max:255'],
-            'data.photo.file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,gif', 'max:2048'],
+            'data.picture.name' => ['string', 'max:255'],
+            'data.picture.file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,gif', 'max:2048'],
         ];
     }
 
     public function destroy()
     {
         return [
-            'data.id' => ['required', 'integer', 'exists:categories,id'],
+            'data.id' => ['required', 'integer', 'exists:App\Models\Category,id'],
         ];
     }
 
@@ -69,7 +69,7 @@ class CategoryRequest extends BaseFormRequest
             'data.parent_id' => 'parent_id',
             'data.section_id' => 'section_id',
             'data.status' => 'status',
-            'data.photo' => 'photo',
+            'data.picture' => 'picture',
         ];
     }
 }

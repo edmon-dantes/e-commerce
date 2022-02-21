@@ -22,8 +22,9 @@ class CategoryResource extends JsonResource
             'parent_id' => $this->parent_id,
             'section' => new SectionResource($this->whenLoaded('section')),
             'parent' => new CategoryResource($this->whenLoaded('parent')),
-            'childrens' => CategoryResource::collection($this->whenLoaded('childrens')),
-            'photo' => new PhotoResource($this->whenLoaded('photo')),
+            // 'children' => CategoryResource::collection($this->whenLoaded('children')),
+            'children_recursive' => CategoryResource::collection($this->whenLoaded('children_recursive')),
+            'picture' => new PictureResource($this->whenLoaded('picture')),
         ];
 
         if (!!$this->id) {

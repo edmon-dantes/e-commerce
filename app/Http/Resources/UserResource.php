@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\RoleResource;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class UserResource extends JsonResource
@@ -16,10 +17,13 @@ class UserResource extends JsonResource
             'username' => $this->username,
             'email' => $this->email,
             'phone_number' => $this->phone_number,
+            'address' => $this->address,
             'status' => $this->status,
             'slug' => $this->slug,
             'fullname' => $this->fullname,
-            'photo' => new PhotoResource($this->whenLoaded('photo')),
+            'picture' => new PictureResource($this->whenLoaded('picture')),
+            'roles' => RoleResource::collection($this->whenLoaded('roles')),
+            'permissions' => PermissionResource::collection($this->whenLoaded('permissions')),
         ];
 
         if (!!$this->id) {

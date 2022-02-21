@@ -7,58 +7,47 @@ use App\Http\Requests\SectionRequest;
 use App\Http\Resources\SectionCollection;
 use App\Http\Resources\SectionResource;
 use App\Models\Section;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Spatie\QueryBuilder\AllowedFilter;
-use Spatie\QueryBuilder\QueryBuilder;
-use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
-use Throwable;
+use App\Services\SectionsService;
 
 class SectionController extends Controller
 {
-    const MODEL_WITH = ['categories.childrens', 'photo'];
+    const MODEL_WITH = ['categories.children', 'picture'];
 
-    public function index(Request $request)
+    function __construct()
     {
-        $models = QueryBuilder::for(Section::class)->allowedFilters([AllowedFilter::exact('id'), 'name'])->with(self::MODEL_WITH);
+        $this->middleware('permission:sections.index|sections.create|sections.show|sections.edit|sections.destroy', ['only' => ['index']]);
+        $this->middleware('permission:sections.create', ['only' => ['create', 'store']]);
+        $this->middleware('permission:sections.edit', ['only' => ['edit', 'update']]);
+        $this->middleware('permission:sections.show', ['only' => ['show']]);
+        $this->middleware('permission:sections.destroy', ['only' => ['destroy', 'destroy_multiple']]);
+    }
 
-        // if (!(auth()->check() && auth()->user()->hasRole('super-admin'))) {
-        //     $models->where('status', 1);
-        // }
+    public function index(SectionRequest $request, SectionsService $service)
+    {
+        $sections = $service->index($request)->with(self::MODEL_WITH);
 
-        $models = match ($request->has('size')) {
-            true => $models->paginate($request->query('size')),
-            default => $models->take(20)->get()
+        $sections = match ($request->has('size')) {
+            true => $sections->paginate($request->query('size')),
+            default => $sections->take(500)->get()
         };
 
         $additional = ['collections' => []];
 
-        return (new SectionCollection($models))->additional($additional);
+        return (new SectionCollection($sections))->additional($additional);
     }
 
-    public function create()
+    public function create(SectionsService $service)
     {
-        $section = new Section();
+        $section = $service->create();
 
         $additional = ['collections' => []];
 
         return (new SectionResource($section))->additional($additional);
     }
 
-    public function store(SectionRequest $request)
+    public function store(SectionRequest $request, SectionsService $service)
     {
-        DB::beginTransaction();
-        try {
-
-            $section = Section::create($request->input('data'));
-
-            $section->syncMediaOne($request->data, 'photo', 'photos');
-
-            DB::commit();
-        } catch (Throwable $e) {
-            DB::rollBack();
-            throw new UnprocessableEntityHttpException($e->getMessage());
-        }
+        $section = $service->store($request);
 
         $additional = ['meta' => ['message' => 'Successfully created.']];
 
@@ -77,38 +66,18 @@ class SectionController extends Controller
         return $this->show($section);
     }
 
-    public function update(SectionRequest $request, Section $section)
+    public function update(SectionRequest $request, Section $section, SectionsService $service)
     {
-        DB::beginTransaction();
-        try {
-
-            $section->update($request->input('data'));
-
-            $section->syncMediaOne($request->data, 'photo', 'photos');
-
-            DB::commit();
-        } catch (Throwable $e) {
-            DB::rollBack();
-            throw new UnprocessableEntityHttpException($e->getMessage());
-        }
+        $section = $service->update($request, $section);
 
         $additional = ['meta' => ['message' => 'Successfully updated.']];
 
         return (new SectionResource($section->load(self::MODEL_WITH)))->additional($additional);
     }
 
-    public function destroy(Section $section)
+    public function destroy(Section $section, SectionsService $service)
     {
-        DB::beginTransaction();
-        try {
-
-            $section->delete();
-
-            DB::commit();
-        } catch (Throwable $e) {
-            DB::rollBack();
-            throw new UnprocessableEntityHttpException($e->getMessage());
-        }
+        $section = $service->destroy($section);
 
         $additional = ['meta' => ['message' => 'Successfully deleted.']];
 
